@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation maker</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100%;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        #canvas {
+            width: 900px;
+            height: 450px;
+            border: 1px solid;
+        }
+
+        #toolbar {
+            background-color: rgb(224, 224, 224);
+            padding: 10px;
+        }
+
+        #toolbar div {
+            margin-bottom: 10px;
+        }
+
+        #toolbar button {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        #toolbar hr {
+            background-color: grey;
+            border: 1px solid grey;
+            margin-bottom: 10px;
+        }
+
+        #frame-container {
+            width: 100vw;
+            overflow: auto;
+            margin-top: 10px;
+            list-style: none;
+            display: flex;
+            cursor: default;
+        }
+
+        #frame-container li {
+            padding: 10px;
+            border: 1px solid;
+            margin-left: 5px;
+        }
+
+        #frame-container li.active {
+            background-color: rgb(174, 174, 255);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div></div>
+        <canvas id="canvas" width="900" height="450"></canvas>
+        <div id="toolbar">
+            <div>
+                <label for="color">Color: </label>
+                <input type="color" id="color">
+            </div>
+            <div>
+                <label for="line-width">Line width: </label>
+                <input type="range" min="1" max="100" value="5" id="line-width">
+            </div>
+            <div>
+                <button id="pen" onclick="drawingTool='pen'">Pen</button>
+                <button id="eraser" onclick="drawingTool='eraser'">Eraser</button>
+            </div>
+            <div>
+                <button id="clear" onclick="clearFrame()">Clear</button>
+            </div>
+            <hr>
+            <div>
+                <button id="add-frame">Add frame</button>
+                <button id="delete-frame" onclick="deleteFrame()">Delete frame</button><br>
+                <button id="duplicate-frame" onclick="duplicateFrame()">Duplicate frame</button>
+            </div>
+            <hr>
+            <div>
+                <button id="play">Play</button>
+                <input type="checkbox" id="loop">
+                <label for="loop">Loop</label>
+            </div>
+            <div>
+                <label for="fps">Fps: </label>
+                <input type="number" id="fps" min="1" max="90" value="10">
+            </div>
+        </div>
+    </div>
+    <ul id="frame-container"></ul>
+</body>
+<script src="canvas.js"></script>
+
+</html>
