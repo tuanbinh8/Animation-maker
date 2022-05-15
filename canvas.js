@@ -7,6 +7,8 @@ let loopCheckbox = document.getElementById('loop')
 let addFrameButton = document.getElementById('add-frame')
 let fpsInput = document.getElementById('fps')
 let frameContainer = document.getElementById('frame-container')
+let exportButton = document.getElementById('export')
+let outputLink = document.getElementById('output')
 let drawingTool = 'pen'
 let isPainting = false
 let isPlaying = false
@@ -15,6 +17,8 @@ let fps = 10
 let currentFrameNumber = 0
 let playInterval
 
+ctx.fillStyle = 'white'
+ctx.fillRect(0, 0, canvas.width, canvas.height)
 updateFrame()
 changeFrame(0)
 
@@ -25,7 +29,7 @@ canvas.onmousedown = (event) => {
 
 window.onmouseup = () => {
     isPainting = false
-    frames[currentFrameNumber] = canvas.toDataURL()
+    frames[currentFrameNumber] = canvas.toDataURL('image/webp')
     ctx.beginPath();
     // console.log(frames);
 }
@@ -90,7 +94,7 @@ function addFrame() {
 }
 
 function duplicateFrame() {
-    frames.push(canvas.toDataURL())
+    frames.push(canvas.toDataURL('image/webp'))
     changeFrame(frames.length - 1)
 }
 
@@ -127,4 +131,16 @@ function updateFrame() {
         frameContainer.appendChild(liElement)
     })
     frameContainer.children[currentFrameNumber].className = 'active'
+}
+
+exportButton.onclick = () => {
+    outputLink.innerText = ''
+    var encoder = new Whammy.Video(fps);
+    frames.map(frame => encoder.add(frame))
+    let output = encoder.compile()
+    let url = URL.createObjectURL(output);
+    console.log(output)
+    console.log(url)
+    outputLink.href = url
+    outputLink.innerText = 'Video link'
 }
