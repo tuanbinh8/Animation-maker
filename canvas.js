@@ -4,9 +4,10 @@ let colorInput = document.getElementById('color')
 let lineWidthInput = document.getElementById('line-width')
 let playButton = document.getElementById('play')
 let loopCheckbox = document.getElementById('loop')
-let addFrameButton = document.getElementById('add-frame')
 let fpsInput = document.getElementById('fps')
 let frameContainer = document.getElementById('frame-container')
+let importImageButton = document.querySelector('.import.image')
+let importVideoButton = document.querySelector('.import.video')
 let exportButton = document.getElementById('export')
 let outputLink = document.getElementById('output')
 let drawingTool = 'pen'
@@ -17,8 +18,7 @@ let fps = 10
 let currentFrameNumber = 0
 let playInterval
 
-ctx.fillStyle = 'white'
-ctx.fillRect(0, 0, canvas.width, canvas.height)
+clearFrame()
 updateFrame()
 changeFrame(0)
 
@@ -29,7 +29,7 @@ canvas.onmousedown = (event) => {
 
 window.onmouseup = () => {
     isPainting = false
-    frames[currentFrameNumber] = canvas.toDataURL('image/webp')
+    saveFrame()
     ctx.beginPath();
     // console.log(frames);
 }
@@ -80,22 +80,20 @@ playButton.onclick = () => {
 }
 
 function clearFrame() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-}
-
-addFrameButton.onclick = () => {
-    addFrame()
-    clearFrame()
+    ctx.fillStyle = 'white'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
 }
 
 function addFrame() {
     frames.push('')
     changeFrame(frames.length - 1)
+    frameContainer.scrollLeft = frameContainer.scrollWidth;
 }
 
 function duplicateFrame() {
     frames.push(canvas.toDataURL('image/webp'))
     changeFrame(frames.length - 1)
+    frameContainer.scrollLeft = frameContainer.scrollWidth;
 }
 
 function deleteFrame() {
@@ -111,12 +109,14 @@ function changeFrame(frameNumber) {
     else if (frameNumber < 0) frameNumber = 0
     currentFrameNumber = frameNumber
     let frame = frames[currentFrameNumber]
-    let image = new Image()
-    image.src = frame
-    image.onload = () => {
-        clearFrame()
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
-    }
+    if (frame) {
+        let image = new Image()
+        image.src = frame
+        image.onload = () => {
+            clearFrame()
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+        }
+    } else clearFrame()
     updateFrame()
 }
 
@@ -133,14 +133,73 @@ function updateFrame() {
     frameContainer.children[currentFrameNumber].className = 'active'
 }
 
+function saveFrame() {
+    frames[currentFrameNumber] = canvas.toDataURL('image/webp')
+}
+
 exportButton.onclick = () => {
     outputLink.innerText = ''
     var encoder = new Whammy.Video(fps);
     frames.map(frame => encoder.add(frame))
-    let output = encoder.compile()
-    let url = URL.createObjectURL(output);
-    console.log(output)
-    console.log(url)
-    outputLink.href = url
-    outputLink.innerText = 'Video link'
+    encoder.compile(false, function (output) {
+        let url = URL.createObjectURL(output);
+        console.log(output)
+        console.log(url)
+        outputLink.href = url
+        outputLink.innerText = 'Video link'
+    })
+}
+
+importImageButton.onclick = () => {
+    askForFile((file) => {
+        let reader = new FileReader()
+        reader.onload = () => {
+            let image = new Image()
+            image.src = reader.result
+            image.onload = () => {
+                ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+            }
+        }
+        reader.readAsDataURL(file)
+    }, 'image/*')
+}
+
+importVideoButton.onclick = () => {
+    askForFile((file) => {
+        let reader = new FileReader()
+        reader.onload = () => {
+            isPainting = false
+            let video = document.createElement('video')
+            let buffer = reader.result;
+            let videoBlob = new Blob([new Uint8Array(buffer)], { type: 'video/mp4' });
+            let url = window.URL.createObjectURL(videoBlob);
+            video.src = url;
+            video.play()
+            video.onplay = () => {
+                console.log(video);
+                let n = 0
+                let interval = setInterval(() => {
+                    n++
+                    if (n > Math.ceil(video.duration * 1000 * (fps / 1000)))
+                        clearInterval(interval)
+                    else {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+                        saveFrame()
+                        addFrame()
+                    }
+                }, 1000 / fps)
+            }
+        }
+        reader.readAsArrayBuffer(file)
+    }, 'video/*')
+}
+
+function askForFile(callback, fileLimit) {
+    let input = document.createElement('input')
+    input.type = 'file'
+    input.accept = fileLimit || ''
+    input.click()
+    input.onchange = () => {
+        callback(input.files[0]);
+    }
 }
