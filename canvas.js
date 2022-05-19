@@ -17,6 +17,7 @@ let frames = ['']
 let fps = 10
 let currentFrameNumber = 0
 let playInterval
+let importVideoInterval
 
 clearFrame()
 updateFrame()
@@ -31,7 +32,6 @@ window.onmouseup = () => {
     isPainting = false
     saveFrame()
     ctx.beginPath();
-    // console.log(frames);
 }
 
 canvas.onmousemove = (event) => {
@@ -46,6 +46,22 @@ canvas.onmousemove = (event) => {
         ctx.strokeStyle = 'white'
     ctx.lineTo(event.clientX - canvas.offsetLeft, event.clientY - canvas.offsetTop);
     ctx.stroke();
+}
+
+document.onpaste = (event) => {
+    let item = event.clipboardData.items[0]
+    if (item.type.substring(0, 5) == 'image') {
+        let blob = item.getAsFile();
+        let reader = new FileReader();
+        reader.onload = () => {
+            let image = new Image()
+            image.src = reader.result
+            image.onload = () => {
+                ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+            }
+        };
+        reader.readAsDataURL(blob);
+    }
 }
 
 fpsInput.onchange = () => {
@@ -137,9 +153,18 @@ function saveFrame() {
     frames[currentFrameNumber] = canvas.toDataURL('image/webp')
 }
 
+function getImageURL(imgData) {
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    canvas.width = imgData.width;
+    canvas.height = imgData.height;
+    ctx.putImageData(imgData, 0, 0);
+    return canvas.toDataURL(); //image URL
+}
+
 exportButton.onclick = () => {
     outputLink.innerText = ''
-    var encoder = new Whammy.Video(fps);
+    let encoder = new Whammy.Video(fps);
     frames.map(frame => encoder.add(frame))
     encoder.compile(false, function (output) {
         let url = URL.createObjectURL(output);
@@ -165,33 +190,39 @@ importImageButton.onclick = () => {
 }
 
 importVideoButton.onclick = () => {
-    askForFile((file) => {
-        let reader = new FileReader()
-        reader.onload = () => {
-            isPainting = false
-            let video = document.createElement('video')
-            let buffer = reader.result;
-            let videoBlob = new Blob([new Uint8Array(buffer)], { type: 'video/mp4' });
-            let url = window.URL.createObjectURL(videoBlob);
-            video.src = url;
-            video.play()
-            video.onplay = () => {
-                console.log(video);
-                let n = 0
-                let interval = setInterval(() => {
-                    n++
-                    if (n > Math.ceil(video.duration * 1000 * (fps / 1000)))
-                        clearInterval(interval)
-                    else {
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-                        saveFrame()
-                        addFrame()
-                    }
-                }, 1000 / fps)
+    if (importVideoButton.innerText == 'Import video') {
+        askForFile((file) => {
+            let reader = new FileReader()
+            reader.onload = () => {
+                isPainting = false
+                let video = document.createElement('video')
+                let buffer = reader.result;
+                let videoBlob = new Blob([new Uint8Array(buffer)], { type: 'video/mp4' });
+                let url = window.URL.createObjectURL(videoBlob);
+                video.src = url;
+                video.play()
+                video.onplay = () => {
+                    console.log(video);
+                    importVideoButton.innerText = 'Cancel'
+                    let n = 0
+                    importVideoInterval = setInterval(() => {
+                        n++
+                        if (n > Math.ceil(video.duration * 1000 * (fps / 1000)))
+                            clearInterval(importVideoInterval)
+                        else {
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+                            saveFrame()
+                            addFrame()
+                        }
+                    }, 1000 / fps)
+                }
             }
-        }
-        reader.readAsArrayBuffer(file)
-    }, 'video/*')
+            reader.readAsArrayBuffer(file)
+        }, 'video/*')
+    } else if (importVideoButton.innerText == 'Cancel') {
+        clearInterval(importVideoInterval)
+        importVideoButton.innerText = 'Import video'
+    }
 }
 
 function askForFile(callback, fileLimit) {
